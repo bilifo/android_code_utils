@@ -1,0 +1,34 @@
+开源包：Android-Universal-Image-Loader
+地址：https://github.com/nostra13/Android-Universal-Image-Loader
+
+简单使用：
+1、初始化。
+	DisplayImageOptions 		options
+	ImageLoader 				imageLoader
+	ImageLoaderConfiguration 	configuration
+	详细讲解：http://blog.csdn.net/u014702999/article/details/47780531
+	
+	示例：
+	options = new DisplayImageOptions.Builder()
+			.showImageOnLoading(R.drawable.ic_launcher)
+			.showImageForEmptyUri(R.drawable.ic_launcher)
+			.showImageOnFail(R.drawable.ic_launcher)
+			.cacheInMemory(true)
+			.cacheOnDisk(true)
+			.considerExifParams(true)
+			.bitmapConfig(Bitmap.Config.RGB_565)
+			.build();
+	configuration = new ImageLoaderConfiguration.Builder(context).writeDebugLogs() // 打印log信息
+				.build();
+	imageLoader = ImageLoader.getInstance();
+	imageLoader.init(configuration);
+2、加载图片。
+	imageLoader.displayImage("drawable://" +path ,imageview,options);
+3、路径字符串规则。
+	"http://site.com/image.png" 					// from Web
+	"file:///mnt/sdcard/image.png" 					// from SD card
+	"file:///mnt/sdcard/video.mp4" 					// from SD card (video thumbnail)
+	"content://media/external/images/media/13" 		// from content provider
+	"content://media/external/video/media/13" 		// from content provider (video thumbnail)
+	"assets://image.png" 							// from assets
+	"drawable://" + R.drawable.img 					// from drawables (non-9patch images)

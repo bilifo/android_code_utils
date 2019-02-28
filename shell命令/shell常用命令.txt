@@ -1,0 +1,9 @@
+1、查看shell中可用的所有命令
+	ls system/bin
+2、查看系统所有数据库、缓存
+	ls data/data
+      直接看所有应用的数据库文件
+    ls /data/data/*/databases
+3、查看数据库文件
+	sqlite3 XXX.db  ---->进入到数据库查询状态“sqlite>”
+		.tables  显示所有数据
