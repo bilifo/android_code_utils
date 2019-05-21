@@ -1,4 +1,4 @@
-package 通用_崩溃前日志保存;
+package com.dense.kuiniu.dense_frame.util;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -7,9 +7,13 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Looper;
+import android.support.annotation.RequiresApi;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.dense.kuiniu.dense_frame.MyApplication;
+
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -18,6 +22,7 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
@@ -28,12 +33,12 @@ import java.util.Map;
  * <p>
  * UncaughtException处理类,当程序发生Uncaught异常的时候,有该类来接管程序,并记录发送错误报告
  * 使用方法:
- * 		1/复制该类到项目
- * 		2/在Application类的onCreat里面启用该类
- * 			CrashCatchHandler crashCatchHandler = CrashCatchHandler.getInstance();//获得单例
-			crashCatchHandler.init(getApplicationContext());//初始化,传入context
-		3/给予写权限<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
- * 
+ * 1/复制该类到项目
+ * 2/在Application类的onCreat里面启用该类
+ * CrashCatchHandler crashCatchHandler = CrashCatchHandler.getInstance();//获得单例
+ * crashCatchHandler.init(getApplicationContext());//初始化,传入context
+ * 3/给予写权限<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+ * <p>
  * 这里是博客地址：http://blog.csdn.net/liuhe688/article/details/6584143#
  *
  * @author liuhe688
@@ -78,6 +83,7 @@ public class CrashCatchHandler implements Thread.UncaughtExceptionHandler {
     /**
      * 当UncaughtException发生时会转入该函数来处理
      */
+    @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
     public void uncaughtException(Thread thread, Throwable ex) {
         if (!handleException(ex) && defaultHandler != null) {
@@ -102,6 +108,7 @@ public class CrashCatchHandler implements Thread.UncaughtExceptionHandler {
      * @param ex
      * @return 如果处理了该异常信息, 返回true;否则返回false.
      */
+    @RequiresApi(api = Build.VERSION_CODES.N)
     private boolean handleException(Throwable ex) {
         if (ex == null) {
             return false;
@@ -166,6 +173,7 @@ public class CrashCatchHandler implements Thread.UncaughtExceptionHandler {
      * @param ex
      * @return 返回文件名称
      */
+    @RequiresApi(api = Build.VERSION_CODES.N)
     @SuppressLint("CommitPrefEdits")
     private String saveCrashInfoToFile(Throwable ex) {
         // 字符串流
@@ -183,7 +191,7 @@ public class CrashCatchHandler implements Thread.UncaughtExceptionHandler {
         PrintWriter printWriter = new PrintWriter(writer);// 输出错误栈信息需要用到PrintWriter
         ex.printStackTrace(printWriter);
         Throwable cause = ex.getCause();
-        while (cause != null) {// 循环，把所有的cause都输出到printWriter中
+        if (cause != null) {// 循环，把所有的cause都输出到printWriter中
             cause.printStackTrace(printWriter);
             cause = ex.getCause();
         }
@@ -193,15 +201,37 @@ public class CrashCatchHandler implements Thread.UncaughtExceptionHandler {
 
         // 写入文件
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US);
-        String rootPath = Environment.getExternalStorageDirectory().getAbsolutePath();
-        //log存放路径
-        String crashFileName = rootPath + "/crash_" + simpleDateFormat.format(new Date()) + ".log";
+//        String rootPath = Environment.getExternalStorageDirectory().getAbsolutePath();
+        String appData = MyApplication.getContext().getDataDir().getPath();// /data/data/包名/
 
-        /*//因为是sd卡根目录，所以就需要创建父文件夹了
-        File file = new File(rootPath);
+        //创建父文件夹
+        File file = new File(appData + "/crash");
         if (!file.exists()) {
             file.mkdirs();// 如果不存在，则创建所有的父文件夹
-        }*/
+        }
+        else{//没做日志上传,所以先做一个日志限额,满10个日志,清除时间靠前的日志
+            File[] childs=file.listFiles();
+            if(childs.length>10){
+                long[] lastTime=new long[childs.length];//排序修改最后时间
+                Map<String,File> tmp=new HashMap<>();//key:最后修改时间
+                for(int i=0;i<childs.length;i++){
+                    lastTime[i]=childs[i].lastModified();
+                    tmp.put(String.valueOf(childs[i].lastModified()),childs[i]);
+                }
+                Arrays.sort(lastTime);
+                //从后向前,删除时间靠前file
+                for (int i=lastTime.length-11;i<lastTime.length-10&&i>=0;i--){
+                    long lasttime=lastTime[i];
+                    File rmFile=tmp.get(String.valueOf(lasttime));
+                    rmFile.delete();
+                    tmp.remove(String.valueOf(lasttime));
+                }
+            }else{
+
+            }
+        }
+        //log存放路径
+        String crashFileName = file.getPath() + "/crash_" + simpleDateFormat.format(new Date()) + ".log";
 
         try {
             FileOutputStream fos = new FileOutputStream(crashFileName);
